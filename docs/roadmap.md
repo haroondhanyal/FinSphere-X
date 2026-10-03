@@ -55,35 +55,35 @@ Every list/detail screen needs loading, empty, error, forbidden, and stale-data 
 
 Each phase should be a releasable vertical slice. Close a phase only after its UI, API, database migration, validation, permissions, audit needs, docs, and requested quality checks are complete.
 
-| Phase | Scope | Main screens / result |
-|---|---|---|
-| 1 | Monorepo, authentication, RBAC, base UI, database | Login, protected shell, role-aware dashboard, users/roles/permissions foundation |
-| 2 | Customers, KYC/KYB, accounts, wallet | Onboarding, review queue, customer profile, account detail, wallet |
-| 3 | Transfers, payments, beneficiaries, ledger | Transfer wizard, payment history, beneficiaries, balanced posting foundation |
-| 4 | Cards, virtual cards, statements | Card list/detail/control, statements |
-| 5 | Loans, mock credit decision support, BNPL, collections | Application/underwriting, schedules, servicing, collections queue |
-| 6 | Business banking, merchant, invoices, payroll | Organization dashboard, approvals, invoice/payroll, merchant settlement view |
-| 7 | Accounting, general ledger, fees, reconciliation, settlement | Finance workbench, journals, fee configuration, matching/batches |
-| 8 | Fraud, AML, risk, compliance | Alert queues, case workspace, screening mock, decisions and audit |
-| 9 | Investments, treasury, FX, remittance | Portfolio, liquidity, rate calculator, remittance review |
-| 10 | AI copilot, document AI, forecasting | Explain/summarize views with source context and human review |
-| 11 | Open banking, developer APIs, webhooks | Consent, API client, sandbox docs and delivery logs |
-| 12 | Automation, performance, security checks | Playwright, API/DB checks, k6 scenarios, security regression suite |
-| 13 | Docker, CI/CD, observability | Local stack, CI workflows, metrics/traces/logs |
-| 14 | Kubernetes, Terraform, cloud architecture | Deployment templates and cloud infrastructure baseline |
+| Phase | Scope                                                        | Main screens / result                                                            |
+| ----- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| 1     | Monorepo, authentication, RBAC, base UI, database            | Login, protected shell, role-aware dashboard, users/roles/permissions foundation |
+| 2     | Customers, KYC/KYB, accounts, wallet                         | Onboarding, review queue, customer profile, account detail, wallet               |
+| 3     | Transfers, payments, beneficiaries, ledger                   | Transfer wizard, payment history, beneficiaries, balanced posting foundation     |
+| 4     | Cards, virtual cards, statements                             | Card list/detail/control, statements                                             |
+| 5     | Loans, mock credit decision support, BNPL, collections       | Application/underwriting, schedules, servicing, collections queue                |
+| 6     | Business banking, merchant, invoices, payroll                | Organization dashboard, approvals, invoice/payroll, merchant settlement view     |
+| 7     | Accounting, general ledger, fees, reconciliation, settlement | Finance workbench, journals, fee configuration, matching/batches                 |
+| 8     | Fraud, AML, risk, compliance                                 | Alert queues, case workspace, screening mock, decisions and audit                |
+| 9     | Investments, treasury, FX, remittance                        | Portfolio, liquidity, rate calculator, remittance review                         |
+| 10    | AI copilot, document AI, forecasting                         | Explain/summarize views with source context and human review                     |
+| 11    | Open banking, developer APIs, webhooks                       | Consent, API client, sandbox docs and delivery logs                              |
+| 12    | Automation, performance, security checks                     | Playwright, API/DB checks, k6 scenarios, security regression suite               |
+| 13    | Docker, CI/CD, observability                                 | Local stack, CI workflows, metrics/traces/logs                                   |
+| 14    | Kubernetes, Terraform, cloud architecture                    | Deployment templates and cloud infrastructure baseline                           |
 
 ## Team of 10–12 developers
 
 Use a tech lead/architect to own contracts, reviews, and integration; one product designer to keep screen flows consistent (shared across the team); and these engineering workstreams:
 
-| Workstream | People | Owns |
-|---|---:|---|
-| Frontend shell and design system | 2 | Navigation, shared components, accessibility, responsive behavior, theme |
-| Customer web | 2 | Retail onboarding, accounts, wallet, transfers and customer-facing flows |
-| Business and merchant web | 2 | Organizations, approvals, invoices, payroll, merchant flows |
-| API and identity | 2 | FastAPI modules, auth, authorization, DTOs, API contracts |
-| Data and ledger | 2 | PostgreSQL models/migrations, transaction boundaries, ledger correctness |
-| Quality and platform | 1–2 | CI, integration/e2e automation, local environment, observability and security checks |
+| Workstream                       | People | Owns                                                                                 |
+| -------------------------------- | -----: | ------------------------------------------------------------------------------------ |
+| Frontend shell and design system |      2 | Navigation, shared components, accessibility, responsive behavior, theme             |
+| Customer web                     |      2 | Retail onboarding, accounts, wallet, transfers and customer-facing flows             |
+| Business and merchant web        |      2 | Organizations, approvals, invoices, payroll, merchant flows                          |
+| API and identity                 |      2 | FastAPI modules, auth, authorization, DTOs, API contracts                            |
+| Data and ledger                  |      2 | PostgreSQL models/migrations, transaction boundaries, ledger correctness             |
+| Quality and platform             |    1–2 | CI, integration/e2e automation, local environment, observability and security checks |
 
 For a 10-person team, combine one frontend slot with platform and have the tech lead contribute to API integration. At 12, add one frontend engineer and one QA/platform engineer. Assign a named owner and reviewer to each module; keep API contracts in OpenAPI before parallel UI and API implementation starts.
 

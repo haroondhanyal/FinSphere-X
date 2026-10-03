@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "API: install",
+      "type": "shell",
+      "command": "python3 -m pip install -e 'apps/api[dev]'"
+    },
+    {
+      "label": "API: migrate",
+      "type": "shell",
+      "command": "alembic upgrade head",
+      "options": { "cwd": "${workspaceFolder}/apps/api" }
+    },
+    {
+      "label": "API: run",
+      "type": "shell",
+      "command": "uvicorn app.main:app --reload",
+      "options": { "cwd": "${workspaceFolder}/apps/api" },
+      "isBackground": true
+    },
+    {
+      "label": "Web: install",
+      "type": "shell",
+      "command": "corepack pnpm install"
+    },
+    {
+      "label": "Web: run",
+      "type": "shell",
+      "command": "corepack pnpm dev:web",
+      "isBackground": true
+    },
+    {
+      "label": "Checks: API",
+      "type": "shell",
+      "command": "pytest",
+      "options": { "cwd": "${workspaceFolder}/apps/api" }
+    },
+    {
+      "label": "Checks: Web types",
+      "type": "shell",
+      "command": "corepack pnpm typecheck:web"
+    }
+  ]
+}

@@ -8,41 +8,97 @@
 <p align="center"><strong>AI-Powered Digital Banking &amp; Financial Operations Platform</strong></p>
 <p align="center"><a href="https://github.com/haroondhanyal/FinSphere-X">GitHub Repository</a> · Banking Beyond Borders</p>
 
-FinSphere X brings digital banking, payments, business finance, and financial operations together in one role-aware platform. Development is organized into 14 incremental phases so each module can be built, reviewed, and connected without starting with a complex distributed system.
+## Phase 1–4 release
 
-## Project status
+This release establishes authentication and role permissions, the customer profile and KYC flow, account and wallet operations, beneficiary transfers and payments with double-entry journal records, card controls, and account statements. Read [the complete product roadmap](docs/roadmap.md) for screens and all 14 planned phases.
 
-Roadmap and architecture foundation. Product screens and delivery ownership are documented in [the roadmap](docs/roadmap.md). Planned modules are not represented as implemented features until their code and checks are complete.
+| Phase | Status      | Delivered in this release                                                                                                          |
+| ----- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Implemented | pnpm workspace, FastAPI API, PostgreSQL/SQLite development DB, JWT authentication, role permissions, responsive app shell          |
+| 2     | Implemented | Customer profile, KYC details and document upload/review, multi-account support, wallet balances and account-wallet moves          |
+| 3     | Implemented | Beneficiaries and verification, transfers and payments, idempotency keys, immutable transaction references, balanced journal lines |
+| 4     | Implemented | Masked virtual card issuance, activate/freeze/unfreeze/block controls, account statement JSON and CSV export                       |
+| 5–14  | Planned     | Loans, business and merchant services, finance operations, risk, AI, open banking and cloud platform work                          |
 
-## Roadmap — 14 phases
+## Run locally
 
-| Phase | Delivery |
-|---|---|
-| 1 | Monorepo, authentication, RBAC, base UI, database |
-| 2 | Customers, KYC/KYB, accounts, wallet |
-| 3 | Transfers, payments, beneficiaries, ledger |
-| 4 | Cards, virtual cards, statements |
-| 5 | Loans, mock credit decision support, BNPL, collections |
-| 6 | Business banking, merchant, invoices, payroll |
-| 7 | Accounting, general ledger, fees, reconciliation, settlement |
-| 8 | Fraud, AML, risk, compliance |
-| 9 | Investments, treasury, FX, remittance |
-| 10 | AI copilot, document AI, forecasting |
-| 11 | Open banking, developer APIs, webhooks |
-| 12 | Automation, performance, security testing |
-| 13 | Docker, CI/CD, observability |
-| 14 | Kubernetes, Terraform, cloud architecture |
+Requirements: Node.js 22+, Corepack, Python 3.11+, and PostgreSQL (or SQLite for quick local work).
 
-## Documentation
+### Install
 
-- [Detailed screen inventory, phase plan, and team split](docs/roadmap.md)
-- [Architecture and coding conventions](docs/architecture.md)
+```bash
+corepack prepare pnpm@10.15.1 --activate
+corepack pnpm install
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e 'apps/api[dev]'
+cp .env.example .env
+```
 
-## Engineering principles
+Replace the example `JWT_SECRET` in `.env` with a private random value before starting a shared environment.
 
-- Start as a modular monolith: Next.js web app, FastAPI API, and PostgreSQL.
-- Keep feature code small and group it by module; validate requests at the API boundary.
-- Enforce permissions and tenant ownership in the backend.
-- Use `Decimal` and PostgreSQL `NUMERIC` for money.
-- Financial posting must be atomic, idempotent, auditable, and balanced.
-- Never store raw CVV, plain-text passwords, or secrets in the repository.
+### Start the API
+
+From the VS Code terminal, in the repository root:
+
+```bash
+cd apps/api
+alembic upgrade head
+python -m app.seed
+uvicorn app.main:app --reload
+```
+
+API docs: [http://localhost:8000/docs](http://localhost:8000/docs). For PostgreSQL set `DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/DATABASE`; SQLite is the default for a quick start.
+
+### Start the web app
+
+In a second VS Code terminal at the repository root:
+
+```bash
+corepack pnpm dev:web
+```
+
+Open [http://localhost:3000](http://localhost:3000). Set `NEXT_PUBLIC_API_URL` if the API is hosted elsewhere.
+
+### Demo accounts
+
+After `python -m app.seed`, use `customer@finspherex.com`, `operations@finspherex.com`, or `admin@finspherex.com`. The local demo password is `FinSphere-Demo-2026!`. These seed credentials are for disposable local data only; change or remove them before any shared deployment.
+
+### Docker Compose
+
+```bash
+docker compose up --build
+```
+
+This starts the web app, API, and PostgreSQL with local-only credentials. Do not expose this configuration to a public network.
+
+## Verify Phase 1–4
+
+```bash
+cd apps/api && pytest
+cd ../..
+corepack pnpm typecheck:web
+corepack pnpm lint:web
+corepack pnpm build:web
+```
+
+## Architecture
+
+- `apps/web`: Next.js app routes, shared dashboard shell, responsive feature screens and typed API helper.
+- `apps/api`: FastAPI routers, Pydantic DTOs, SQLAlchemy models, migration and service layer.
+- `apps/web/src/components`: small reusable screen primitives, form controls, statements, and the shadcn-style UI button.
+- `docs`: product roadmap, screen inventory and architecture.
+- `assets`: FinSphere X logo asset used in this README.
+
+Start with [architecture and code conventions](docs/architecture.md). The initial implementation is a modular monolith: feature folders keep responsibilities clear without requiring developers to operate many services at once.
+
+The web base uses Tailwind CSS 4, a source-owned shadcn/ui Button primitive, and Lucide icons. Install the UI dependencies with `corepack pnpm add --filter @finsphere/web tailwindcss @tailwindcss/postcss postcss class-variance-authority tailwind-merge`.
+
+## Financial and security boundaries
+
+- Money is parsed with Python `Decimal` and persisted as PostgreSQL `NUMERIC(20,4)`.
+- Transfer and wallet move endpoints require idempotency keys and write a balanced debit/credit journal in the same database transaction as account balance changes.
+- Users can access only their own customer, account, wallet, beneficiary, card, transaction, and statement records. Operations endpoints use seeded role permissions.
+- Card data stores only a generated last-four display value; no PAN or CVV is accepted or stored.
+- KYC uploads are size/type limited and stored under a private local directory in this development phase.
+- External payments, identity checks, OTP, MFA, and card network processing are not connected. This release is a functional development prototype, not a regulated banking service.

@@ -1,0 +1,10 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": { "source.fixAll": "explicit" }
+  },
+  "python.analysis.typeCheckingMode": "basic",
+  "files.exclude": { "**/__pycache__": true, "**/.pytest_cache": true }
+}

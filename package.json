@@ -1,0 +1,15 @@
+{
+  "name": "finsphere-x",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "dev:web": "corepack pnpm --filter @finsphere/web dev",
+    "build:web": "corepack pnpm --filter @finsphere/web build",
+    "lint:web": "corepack pnpm --filter @finsphere/web lint",
+    "typecheck:web": "corepack pnpm --filter @finsphere/web typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,33 @@
+[project]
+name = "finsphere-api"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1.0", "uvicorn[standard]>=0.34,<1.0", "sqlalchemy>=2.0,<3.0",
+  "alembic>=1.14,<2.0", "pydantic-settings>=2.7,<3.0", "PyJWT>=2.10,<3.0",
+  "python-multipart>=0.0.20,<1.0", "psycopg[binary]>=3.2,<4.0", "email-validator>=2.2,<3.0"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<9.0", "httpx>=0.28,<1.0", "ruff>=0.9,<1.0"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501", "B008"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["tests*"]
