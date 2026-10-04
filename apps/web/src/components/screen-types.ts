@@ -35,6 +35,10 @@ export type Profile = {
   full_name: string;
   email: string;
   phone: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  has_profile_image?: boolean;
   nationality: string;
   kyc_status: string;
 };

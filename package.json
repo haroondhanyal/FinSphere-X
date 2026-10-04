@@ -11,5 +11,10 @@
   "devDependencies": {
     "prettier": "^3.6.2",
     "typescript": "^5.9.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "^8.5.28"
+    }
   }
 }

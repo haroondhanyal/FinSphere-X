@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finspherex-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: finspherex-web
+  template:
+    metadata:
+      labels:
+        app: finspherex-web
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 10001
+      containers:
+        - name: web
+          image: ghcr.io/replace-me/finspherex-web:stable
+          ports:
+            - name: http
+              containerPort: 3000
+          volumeMounts:
+            - name: next-cache
+              mountPath: /repo/apps/web/.next/cache
+            - name: tmp
+              mountPath: /tmp
+          envFrom:
+            - configMapRef:
+                name: finspherex-config
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: next-cache
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: finspherex-web
+spec:
+  selector:
+    app: finspherex-web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

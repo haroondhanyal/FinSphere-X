@@ -12,3 +12,9 @@ coverage/
 dist/
 *.db
 apps/api/uploads/
+apps/web/playwright-report/
+apps/web/test-results/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log

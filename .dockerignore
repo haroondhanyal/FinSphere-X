@@ -6,5 +6,10 @@ node_modules
 **/__pycache__
 **/.pytest_cache
 **/uploads
+**/.terraform
+**/.ruff_cache
+**/.pytest_cache
+**/*.tsbuildinfo
+**/*.tfstate*
 .env
 *.db

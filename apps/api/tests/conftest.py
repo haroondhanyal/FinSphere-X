@@ -11,6 +11,7 @@ from app.main import app
 from app.modules.accounts import models as account_models  # noqa: F401
 from app.modules.cards import models as card_models  # noqa: F401
 from app.modules.identity import models as identity_models  # noqa: F401
+from app.modules.workspace import models as workspace_models  # noqa: F401
 
 
 @pytest.fixture()

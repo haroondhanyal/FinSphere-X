@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finspherex-config
+data:
+  WEB_ORIGIN: "https://bank.example.com"
+  NEXT_PUBLIC_API_URL: "https://api.example.com/api/v1"

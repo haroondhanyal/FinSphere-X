@@ -4,20 +4,22 @@ import { type FormEvent, useState } from "react";
 import { money } from "@/lib/api";
 import { type Account, type Beneficiary } from "./screen-types";
 
-export function CreateAccount({ onDone }: { onDone: () => void }) {
+export function CreateAccount({ onDone }: { onDone: (input: { account_type: string; currency: string }) => void }) {
+  const [accountType, setAccountType] = useState("savings");
+  const [currency, setCurrency] = useState("PKR");
   return (
-    <div className="panel action-panel">
-      <div>
+    <form className="panel action-panel account-create-form" onSubmit={(event) => { event.preventDefault(); onDone({ account_type: accountType, currency }); }}>
+      <div className="account-create-copy">
         <span className="eyebrow">NEED ANOTHER ACCOUNT?</span>
-        <h3>Open a savings account</h3>
-        <p className="muted">
-          Create an additional PKR savings account instantly.
-        </p>
+        <h3>Open a new account</h3>
+        <p className="muted">Choose the account type and currency for your new account.</p>
       </div>
-      <button className="button primary" onClick={onDone}>
-        Open savings account
+      <label>Account type<select value={accountType} onChange={(event) => setAccountType(event.target.value)}><option value="current">Current</option><option value="savings">Savings</option><option value="salary">Salary</option></select></label>
+      <label>Currency<select value={currency} onChange={(event) => setCurrency(event.target.value)}><option>PKR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SAR</option></select></label>
+      <button className="button primary" type="submit">
+        Create account
       </button>
-    </div>
+    </form>
   );
 }
 export function BeneficiaryForm({

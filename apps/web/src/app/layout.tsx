@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
+import "react-international-phone/style.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

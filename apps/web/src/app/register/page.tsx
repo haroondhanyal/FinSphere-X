@@ -2,26 +2,79 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import {
+  CountrySelect,
+  InternationalPhoneField,
+  PasswordField,
+} from "@/components/auth-fields";
+import { ProfileImagePicker } from "@/components/profile-image-picker";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [countryCode, setCountryCode] = useState("pk");
+  const [countryName, setCountryName] = useState("Pakistan");
+  const [phone, setPhone] = useState("");
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [countrySearch, setCountrySearch] = useState("Pakistan");
+  const [stateValue, setStateValue] = useState("");
+  const [cityValue, setCityValue] = useState("");
+  const [states, setStates] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStates([]);
+    setCities([]);
+    setStateValue("");
+    setCityValue("");
+    if (!countryName) return;
+    fetch("https://countriesnow.space/api/v0.1/countries/states", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country: countryName }),
+    }).then((response) => response.json()).then((result) => {
+      if (!cancelled && Array.isArray(result.data?.states)) setStates(result.data.states.map((item: { name: string }) => item.name));
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [countryName]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCities([]);
+    setCityValue("");
+    if (!countryName || !stateValue) return;
+    fetch("https://countriesnow.space/api/v0.1/countries/state/cities", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country: countryName, state: stateValue }),
+    }).then((response) => response.json()).then((result) => {
+      if (!cancelled && Array.isArray(result.data)) setCities(result.data);
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [countryName, stateValue]);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setBusy(true);
     const form = new FormData(event.currentTarget);
+    if (form.get("password") !== form.get("confirm_password")) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setBusy(true);
     try {
       await api("/auth/register", {
         method: "POST",
         body: JSON.stringify({
           full_name: form.get("name"),
           email: form.get("email"),
-          phone: form.get("phone"),
+          phone,
+          country: countryName,
+          state: form.get("state"),
+          city: form.get("city"),
           password: form.get("password"),
         }),
       });
@@ -37,6 +90,14 @@ export default function RegisterPage() {
       );
       localStorage.setItem("fsx_token", result.access_token);
       localStorage.setItem("fsx_refresh", result.refresh_token);
+      if (profileImage) {
+        const imageData = new FormData();
+        imageData.set("file", profileImage);
+        await api("/customers/me/profile-image", {
+          method: "POST",
+          body: imageData,
+        }).catch(() => undefined);
+      }
       router.replace("/dashboard");
     } catch (cause) {
       setError(
@@ -46,8 +107,11 @@ export default function RegisterPage() {
       setBusy(false);
     }
   }
+
   return (
-    <div className="auth-page">
+    <div className="auth-page auth-page-register">
+      <div className="auth-glow auth-glow-one" />
+      <div className="auth-glow auth-glow-two" />
       <div className="auth-brand">
         <Link href="/login" className="brand">
           <span className="brand-mark">F</span>
@@ -59,12 +123,14 @@ export default function RegisterPage() {
           </span>
         </Link>
       </div>
-      <main className="auth-card">
+      <main className="auth-card auth-card-wide">
         <span className="eyebrow">GET STARTED</span>
         <h1>Open your account</h1>
         <p className="muted">Create your secure FinSphere X profile.</p>
         {error && <div className="notice error">{error}</div>}
-        <form className="stack-form" onSubmit={submit}>
+        <form className="stack-form register-form" onSubmit={submit}>
+          <ProfileImagePicker file={profileImage} onChange={setProfileImage} />
+
           <label>
             Full name
             <input
@@ -73,27 +139,87 @@ export default function RegisterPage() {
               minLength={2}
               maxLength={160}
               autoComplete="name"
+              placeholder="Your full name"
             />
           </label>
           <label>
             Email address
-            <input name="email" type="email" required autoComplete="email" />
+            <input
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="you@example.com"
+            />
+          </label>
+
+          <div className="auth-field-grid">
+            <label>
+              Country
+              <CountrySelect
+                value={countryCode}
+                onChange={(code, name, dialCode) => {
+                  setCountryCode(code);
+                  setCountryName(name);
+                  setCountrySearch(name);
+                  setPhone(`+${dialCode}`);
+                }}
+                search={countrySearch}
+                onSearch={setCountrySearch}
+              />
+            </label>
+            <label>
+              State / province
+              <input
+                name="state"
+                autoComplete="address-level1"
+                placeholder="State or province"
+                required
+                maxLength={100}
+                list="country-states"
+                value={stateValue}
+                onChange={(event) => setStateValue(event.target.value)}
+              />
+              <datalist id="country-states">{states.map((state) => <option key={state} value={state} />)}</datalist>
+            </label>
+          </div>
+          <label>
+            City
+            <input
+              name="city"
+              autoComplete="address-level2"
+              placeholder="Your city"
+              required
+              maxLength={100}
+              list="country-cities"
+              value={cityValue}
+              onChange={(event) => setCityValue(event.target.value)}
+            />
+            <datalist id="country-cities">{cities.map((city) => <option key={city} value={city} />)}</datalist>
           </label>
           <label>
             Phone number
-            <input name="phone" type="tel" autoComplete="tel" />
-          </label>
-          <label>
-            Password
-            <input
-              name="password"
-              type="password"
-              required
-              minLength={12}
-              autoComplete="new-password"
+            <InternationalPhoneField
+              countryCode={countryCode}
+              value={phone}
+              onChange={setPhone}
             />
-            <small className="form-hint">Use at least 12 characters.</small>
           </label>
+
+          <PasswordField
+            name="password"
+            label="Password"
+            autoComplete="new-password"
+          />
+          <small className="form-hint">
+            Use at least 12 characters for a stronger password.
+          </small>
+          <PasswordField
+            name="confirm_password"
+            label="Confirm password"
+            autoComplete="new-password"
+          />
+
           <Button className="w-full" size="lg" disabled={busy}>
             {busy ? "Creating account…" : "Create secure account"}
           </Button>

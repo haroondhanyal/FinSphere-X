@@ -1,11 +1,32 @@
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
+export function getAuthToken() {
+  return localStorage.getItem("fsx_token") || sessionStorage.getItem("fsx_token");
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem("fsx_refresh") || sessionStorage.getItem("fsx_refresh");
+}
+
+export function storeAuthTokens(accessToken: string, refreshToken: string, remember: boolean) {
+  const storage = remember ? localStorage : sessionStorage;
+  const otherStorage = remember ? sessionStorage : localStorage;
+  storage.setItem("fsx_token", accessToken);
+  storage.setItem("fsx_refresh", refreshToken);
+  otherStorage.removeItem("fsx_token");
+  otherStorage.removeItem("fsx_refresh");
+}
+
+export function clearAuthTokens() {
+  for (const storage of [localStorage, sessionStorage]) {
+    storage.removeItem("fsx_token");
+    storage.removeItem("fsx_refresh");
+  }
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token =
-    typeof window === "undefined"
-      ? null
-      : window.localStorage.getItem("fsx_token");
+  const token = typeof window === "undefined" ? null : getAuthToken();
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init.body && !(init.body instanceof FormData))
@@ -20,7 +41,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     token &&
     !["/auth/login", "/auth/refresh", "/auth/logout"].includes(path)
   ) {
-    const refreshToken = window.localStorage.getItem("fsx_refresh");
+    const refreshToken = getRefreshToken();
     if (refreshToken) {
       const refreshed = await fetch(`${API_URL}/auth/refresh`, {
         method: "POST",
@@ -32,8 +53,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
           access_token: string;
           refresh_token: string;
         };
-        window.localStorage.setItem("fsx_token", pair.access_token);
-        window.localStorage.setItem("fsx_refresh", pair.refresh_token);
+        const remembered = Boolean(window.localStorage.getItem("fsx_token"));
+        storeAuthTokens(pair.access_token, pair.refresh_token, remembered);
         const retryHeaders = new Headers(init.headers);
         retryHeaders.set("Authorization", `Bearer ${pair.access_token}`);
         if (init.body && !(init.body instanceof FormData))
@@ -44,8 +65,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
           cache: "no-store",
         });
       } else {
-        window.localStorage.removeItem("fsx_token");
-        window.localStorage.removeItem("fsx_refresh");
+        clearAuthTokens();
       }
     }
   }

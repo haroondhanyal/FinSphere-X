@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from app.core.security import hash_password
 from app.modules.accounts.models import Account
-from app.modules.identity.models import Customer, RolePermission, User
+from app.modules.identity.models import Customer, KycDocument, RolePermission, User
 
 PASSWORD = "This-Is-A-Long-Demo-Password-2026!"
 
@@ -55,6 +55,58 @@ def test_auth_register_login_and_resource_ownership(client):
         db.commit()
         account_id = account.id
     assert http.get(f"/api/v1/accounts/{account_id}", headers=headers).status_code == 404
+
+
+def test_kyc_review_details_document_preview_and_reasoned_decision(client, tmp_path, monkeypatch):
+    http, sessions = client
+    registered = register(http)
+    from app.core.security import create_access_token
+
+    with sessions() as db:
+        customer = db.query(Customer).filter_by(user_id=registered["id"]).one()
+        customer.kyc_status = "under_review"
+        document = KycDocument(
+            customer_id=customer.id,
+            document_type="national_id",
+            filename="identity.pdf",
+            status="pending_review",
+        )
+        operator = User(
+            email="kyc-reviewer@example.test",
+            password_hash=hash_password(PASSWORD),
+            role="operations",
+        )
+        db.add_all([document, operator, RolePermission(role="operations", permission="kyc:review")])
+        db.commit()
+        customer_id = customer.id
+        document_id = document.id
+        operator_id = operator.id
+
+    monkeypatch.setattr("app.modules.customers.router.UPLOAD_DIR", tmp_path)
+    (tmp_path / "identity.pdf").write_bytes(b"%PDF-1.4 test document")
+    reviewer = {"Authorization": f"Bearer {create_access_token(operator_id, 'operations')}"}
+
+    details = http.get(f"/api/v1/customers/{customer_id}/kyc/review-details", headers=reviewer)
+    assert details.status_code == 200
+    assert details.json()["email"] == "customer@example.org"
+    assert details.json()["documents"][0]["id"] == document_id
+    preview = http.get(
+        f"/api/v1/customers/{customer_id}/kyc/documents/{document_id}/view",
+        headers=reviewer,
+    )
+    assert preview.status_code == 200
+    assert preview.content.startswith(b"%PDF")
+    assert "inline" in preview.headers["content-disposition"]
+
+    path = f"/api/v1/customers/{customer_id}/kyc/review"
+    assert http.post(path, headers=reviewer, json={"decision": "rejected"}).status_code == 422
+    decision = http.post(
+        path,
+        headers=reviewer,
+        json={"decision": "rejected", "reason": "Identity details do not match"},
+    )
+    assert decision.status_code == 200
+    assert decision.json()["kyc_status"] == "rejected"
 
 
 def test_refresh_token_rotates_and_logout_revokes_session(client):
@@ -222,3 +274,55 @@ def test_card_controls_and_permission_guard(client):
 
     operator_headers = {"Authorization": f"Bearer {create_access_token(operator_id, 'operations')}"}
     assert http.get("/api/v1/customers/", headers=operator_headers).status_code == 200
+
+
+def test_totp_enrollment_challenge_replay_protection_and_disable(client, monkeypatch):
+    http, _sessions = client
+    register(http, "mfa@example.org")
+    password_login = http.post(
+        "/api/v1/auth/login", json={"email": "mfa@example.org", "password": PASSWORD}
+    ).json()
+    setup = http.post(
+        "/api/v1/auth/mfa/setup",
+        headers={"Authorization": f"Bearer {password_login['access_token']}"},
+        json={"password": PASSWORD},
+    )
+    assert setup.status_code == 200, setup.text
+    assert setup.json()["secret"] and setup.json()["provisioning_uri"].startswith("otpauth://")
+
+    counters = {"123456": 100, "654321": 101, "111111": 102}
+    monkeypatch.setattr(
+        "app.modules.identity.router.matching_counter",
+        lambda _secret, code, _now=None: counters.get(code),
+    )
+    enabled = http.post(
+        "/api/v1/auth/mfa/enable",
+        headers={"Authorization": f"Bearer {password_login['access_token']}"},
+        json={"code": "123456"},
+    )
+    assert enabled.status_code == 200 and enabled.json()["enabled"] is True
+    assert http.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {password_login['access_token']}"}).status_code == 401
+
+    challenge = http.post(
+        "/api/v1/auth/login", json={"email": "mfa@example.org", "password": PASSWORD}
+    ).json()
+    assert challenge["mfa_required"] is True
+    verify = http.post(
+        "/api/v1/auth/mfa/verify",
+        json={"challenge_token": challenge["challenge_token"], "code": "654321"},
+    )
+    assert verify.status_code == 200, verify.text
+    headers = {"Authorization": f"Bearer {verify.json()['access_token']}"}
+    assert http.get("/api/v1/auth/me", headers=headers).status_code == 200
+    replay = http.post(
+        "/api/v1/auth/mfa/verify",
+        json={"challenge_token": challenge["challenge_token"], "code": "654321"},
+    )
+    assert replay.status_code == 401
+
+    disabled = http.post(
+        "/api/v1/auth/mfa/disable",
+        headers=headers,
+        json={"password": PASSWORD, "code": "111111"},
+    )
+    assert disabled.status_code == 200 and disabled.json()["enabled"] is False

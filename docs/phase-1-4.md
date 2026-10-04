@@ -2,11 +2,11 @@
 
 ## Implemented features
 
-- Phase 1: email/password signup and login, PBKDF2 password hashing, short-lived access tokens, rotating revocable refresh sessions, logout, role-permission checks, audit foundation, responsive navigation shell, and local development workspace.
+- Phase 1: email/password signup and login, PBKDF2 password hashing, short-lived access tokens, rotating revocable refresh sessions, authenticator-app TOTP MFA, logout, role-permission checks, audit foundation, responsive navigation shell, and local development workspace.
 - Phase 2: customer profile, KYC nationality/status updates, private local KYC upload/download (PDF/PNG/JPEG up to 5 MB), operator KYC review, customer-owned current/savings/salary accounts, and a wallet with account-to-wallet deposits/withdrawals.
 - Phase 3: beneficiary create/list/verify, transfer and payment posting, idempotency-key reuse detection, ownership checks, decimal amounts, transaction history, balanced debit/credit journals, and wallet posting in the same DB transaction as balance changes.
 - Phase 4: masked virtual/debit/prepaid card records, card activation/freeze/unfreeze/block, daily limit API, account statements and CSV export.
-- Frontend routes: `/login`, `/register`, `/dashboard`, `/accounts`, `/accounts/[id]`, `/wallet`, `/transfers`, `/payments`, `/cards`, `/statements`, `/profile`, and `/security`.
+- Frontend routes: `/login`, `/register`, `/dashboard`, `/accounts`, `/accounts/[id]`, `/wallet`, `/transfers`, `/payments`, `/cards`, `/statements`, `/profile`, `/security`, and the operations-only `/kyc` review queue. Operations and admin navigation is scoped to its review workspace; customer navigation retains retail banking screens.
 - Web base UI: Tailwind CSS 4 setup, shadcn/ui component configuration, shared Button primitive, Lucide icons, React Query and exact workspace install commands.
 
 ## Files and module boundaries
@@ -24,7 +24,7 @@
 
 ## APIs added
 
-- `/api/v1/auth`: register, login, refresh and logout; `/auth/me`.
+- `/api/v1/auth`: register, login, refresh, logout, `/auth/me`, session listing/revocation and `/auth/mfa/*` setup, enable, challenge verification, disable and status. MFA setup returns ten one-time recovery codes; login and disable accept an authenticator or unused recovery code.
 - `/api/v1/customers`: own profile/KYC, private document upload/list/download, permission-guarded customer listing and KYC review.
 - `/api/v1/accounts`, `/api/v1/wallet`, `/api/v1/beneficiaries`.
 - `/api/v1/transfers`, `/api/v1/payments`, `/api/v1/transactions`, statement JSON/CSV and transaction journal details.
@@ -35,6 +35,7 @@
 
 - Revision `0001_phase_1_4`: users, customers, KYC docs, role permissions, audit logs, accounts, wallets, beneficiaries, transactions, ledger accounts, journal entries/lines and cards.
 - Revision `0002_refresh_sessions`: persisted revocable refresh sessions.
+- Revision `0011_totp_mfa`: encrypted TOTP secrets, replay counters and failed-attempt lockout state.
 - Money fields use `NUMERIC(20,4)`; financial amounts are represented as `Decimal` in Python.
 
 ## Tests and checks
@@ -63,12 +64,12 @@ In another terminal at the repository root: `corepack pnpm dev:web`.
 
 ## Known remaining items
 
-- Identity verification, face check, OTP delivery and MFA are not integrated; KYC review is an operations decision over uploaded records.
+- External identity verification, face check and email OTP delivery are not integrated. Authenticator-app TOTP and one-time recovery codes are implemented; trusted-device support is not.
 - Payments/transfers are internal simulations; no bank, IBFT, card network, FX, remittance, external biller or settlement provider is connected.
 - Card numbers are not issued by a network; only generated last-four display data is stored. PIN, ATM/POS controls and real card transactions are not included.
 - Local KYC file storage must move to private object storage before shared deployment. Browser bearer-token storage needs a hardened session design before production.
 - Statement export is CSV only; PDF/XLSX generation, date filtering and scheduled delivery remain future work.
-- Rate limiting, lockout policy, TOTP setup, trusted devices, ABAC/tenant isolation and broader authorization policy management are not included in this phase slice.
+- General API rate limiting, password-login lockout, trusted devices, ABAC/tenant isolation and broader authorization policy management are not included in this phase slice. MFA verification has a per-account five-failure lockout.
 - For production, replace local credentials and JWT secret, add real monitoring, security review, external-provider controls and operational runbooks.
 
 ## Next phase

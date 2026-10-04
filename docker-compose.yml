@@ -5,7 +5,7 @@ services:
       POSTGRES_DB: finsphere
       POSTGRES_USER: finsphere
       POSTGRES_PASSWORD: finsphere-local-only
-    ports: ["5432:5432"]
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
     volumes: ["finsphere-postgres:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U finsphere -d finsphere"]
@@ -13,23 +13,50 @@ services:
       timeout: 3s
       retries: 10
   api:
+    image: finspherex-api:latest
     build:
       context: ./apps/api
     environment:
       DATABASE_URL: postgresql+psycopg://finsphere:finsphere-local-only@postgres:5432/finsphere
       JWT_SECRET: local-compose-only-secret-change-for-real-deployment
-      WEB_ORIGIN: http://localhost:3000
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+      WEB_ORIGINS: ${WEB_ORIGINS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-astra}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-20}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
     depends_on:
       postgres: { condition: service_healthy }
     command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
-    ports: ["8000:8000"]
+    ports: ["${API_PORT:-8000}:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
   web:
+    image: finspherex-web:latest
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+    depends_on:
+      api: { condition: service_healthy }
+    ports: ["${WEB_PORT:-3000}:3000"]
+  prometheus:
+    profiles: [observability]
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on: [api]
-    ports: ["3000:3000"]
+    ports: ["${PROMETHEUS_PORT:-9090}:9090"]
 volumes:
   finsphere-postgres:
